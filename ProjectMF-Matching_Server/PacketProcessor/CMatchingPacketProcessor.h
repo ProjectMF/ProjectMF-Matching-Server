@@ -1,7 +1,9 @@
 #pragma once
 #define NOMINMAX
 #define _WINSOCKAPI_
-#include "Packet/data_define_generated.h"
+#include "../System/CSystem.h"
+#include "../System/CDBSystem.h"
+#include "../Packet/data_define_generated.h"
 #include <NetworkModel/IOCP/IOCP.hpp>
 #include <Functions/CircularQueue/CircularQueue.hpp>
 #include <flatbuffers/flatbuffers.h>
@@ -35,11 +37,13 @@ struct FTransmitQueueData;
 
 class CMatchingPacketProcessor {
 	typedef SERVER::FUNCTIONS::CIRCULARQUEUE::CircularQueue<FPacketProcessingData*> PACKET_QUEUE;
-	typedef std::unordered_map<FlatPacket::PacketType, std::function<FTransmitQueueData* (const FPacketProcessingData* const)>> PROCESSOR;
+	typedef std::unordered_map<uint8_t, std::function<FTransmitQueueData* (const FPacketProcessingData* const)>> PROCESSOR;
 
 	const std::function<void(void*)> m_packetProcessedCallback;
 private:
+	CSystem m_system;
 
+	CDBSystem m_databaseSystem;
 
 private:
 	std::mutex m_csProcessingQueueMutex;
@@ -57,7 +61,9 @@ private:
 	void* PacketProcessing(FPacketProcessingData* pPacketData);
 
 private:
-	FTransmitQueueData* LoginProcessing(const FPacketProcessingData* const pPacketData);
+	FTransmitQueueData* SignInProcessing(const FPacketProcessingData* const pPacketData);
+
+	FTransmitQueueData* DBSignInProcessed(const FPacketProcessingData* const pPacketData);
 
 public:
 	CMatchingPacketProcessor(std::function<void(void*)>&& packetProcessedCallback, const std::string& sHostName, const std::string& sDBName, const std::string& sUserName, const std::string& sPassword, const uint16_t iMaxPoolConnection);

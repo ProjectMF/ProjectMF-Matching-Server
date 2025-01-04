@@ -1,0 +1,8 @@
+namespace FlatPacket;
+
+table SignInRequest {
+	message_type:short;
+	user_id:string;
+}
+
+root_type SignInRequest;

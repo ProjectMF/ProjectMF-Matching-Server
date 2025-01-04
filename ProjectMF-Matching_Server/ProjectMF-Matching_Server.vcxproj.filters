@@ -22,27 +22,63 @@
     <Filter Include="Header Files\PacketProcessor">
       <UniqueIdentifier>{81c02d53-c43a-4083-bd22-07699bd8caf4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Packet\Util">
+      <UniqueIdentifier>{9b03244d-beef-4b30-a95c-c195382dea1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\System">
+      <UniqueIdentifier>{5cc684bb-aca0-436f-afc3-1e8eb2f886f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\System\DBSystem">
+      <UniqueIdentifier>{d0c42d3a-dcb9-4832-a285-3e6b94a20df6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\System\DBSystem\Util">
+      <UniqueIdentifier>{4d68a964-765f-4df4-93ba-1b341871cd3a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CMatchingIOCP.cpp">
+    <ClCompile Include="IOCP\CMatchingIOCP.cpp">
       <Filter>Header Files\IOCP</Filter>
     </ClCompile>
-    <ClCompile Include="CMatchingPacketProcessor.cpp">
+    <ClCompile Include="PacketProcessor\CMatchingPacketProcessor.cpp">
       <Filter>Header Files\PacketProcessor</Filter>
+    </ClCompile>
+    <ClCompile Include="System\CSystem.cpp">
+      <Filter>Header Files\System</Filter>
+    </ClCompile>
+    <ClCompile Include="System\CDBSystem.cpp">
+      <Filter>Header Files\System\DBSystem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CMatchingIOCP.h">
-      <Filter>Header Files\IOCP</Filter>
-    </ClInclude>
     <ClInclude Include="Packet\data_define_generated.h">
       <Filter>Header Files\Packet</Filter>
     </ClInclude>
-    <ClInclude Include="CMatchingPacketProcessor.h">
+    <ClInclude Include="Packet\Util\Util.h">
+      <Filter>Header Files\Packet\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Packet\sign_in_request_define_generated.h">
+      <Filter>Header Files\Packet</Filter>
+    </ClInclude>
+    <ClInclude Include="Packet\sign_in_result_define_generated.h">
+      <Filter>Header Files\Packet</Filter>
+    </ClInclude>
+    <ClInclude Include="IOCP\CMatchingIOCP.h">
+      <Filter>Header Files\IOCP</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketProcessor\CMatchingPacketProcessor.h">
       <Filter>Header Files\PacketProcessor</Filter>
+    </ClInclude>
+    <ClInclude Include="System\CSystem.h">
+      <Filter>Header Files\System</Filter>
+    </ClInclude>
+    <ClInclude Include="System\CDBSystem.h">
+      <Filter>Header Files\System\DBSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="System\DBUtil\DBUtil.h">
+      <Filter>Header Files\System\DBSystem\Util</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

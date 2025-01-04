@@ -1,0 +1,8 @@
+namespace FlatPacket;
+
+table SignInResult {
+	message_type:short;
+	uuid:int;
+}
+
+root_type SignInResult;

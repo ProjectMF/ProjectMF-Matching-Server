@@ -1,13 +1,18 @@
 #include "CMatchingPacketProcessor.h"
-#include "CMatchingIOCP.h"
+#include "../Packet/Util/Util.h"
+#include "../IOCP/CMatchingIOCP.h"
 
 using namespace SERVER::FUNCTIONS::LOG;
 
 CMatchingPacketProcessor::CMatchingPacketProcessor(std::function<void(void*)>&& packetProcessedCallback, const std::string& sHostName, const std::string& sDBName, const std::string& sUserName, const std::string& sPassword, const uint16_t iMaxPoolConnection)
-	: m_packetProcessedCallback(packetProcessedCallback)
+	: m_databaseSystem("", "", "", "", iMaxPoolConnection, std::bind(&CMatchingPacketProcessor::AddNewPacketData, this, std::placeholders::_1))
+	, m_packetProcessedCallback(packetProcessedCallback)
 	, m_bPacketProcessingThreadRunState(true) {
 
-	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_SignInRequest, std::bind(&CMatchingPacketProcessor::LoginProcessing, this, std::placeholders::_1));
+	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_SignInRequest, std::bind(&CMatchingPacketProcessor::SignInProcessing, this, std::placeholders::_1));
+
+
+	m_packetProcessor.emplace(EDBRequestType::EDBType_SignInRequest, std::bind(&CMatchingPacketProcessor::DBSignInProcessed, this, std::placeholders::_1));
 
 	m_pPacketProcessQueue = std::make_unique<PACKET_QUEUE>();
 	m_pPacketStockQueue = std::make_unique<PACKET_QUEUE>();
@@ -22,7 +27,6 @@ CMatchingPacketProcessor::~CMatchingPacketProcessor() {
 }
 
 bool CMatchingPacketProcessor::Initialize(const std::string& sConfigFilePath) {
-
 
 	return true;
 }
@@ -61,11 +65,38 @@ void* CMatchingPacketProcessor::PacketProcessing(FPacketProcessingData* pPacketD
 	return pTransmitQueueData;
 }
 
-
-FTransmitQueueData* CMatchingPacketProcessor::LoginProcessing(const FPacketProcessingData* const pPacketData) {
+FTransmitQueueData* CMatchingPacketProcessor::SignInProcessing(const FPacketProcessingData* const pPacketData) {
 	if (auto pPacketStruct = std::static_pointer_cast<PACKET_STRUCT, void>(pPacketData->m_pMessage)) {
-	//	if (auto pLoginPacket = FlatPacket::LoginPacket::GetLoginPacket(pPacketStruct->m_sPacketData))
-	//		m_databaseSystem.AddNewDBRequestData(new FDBLoginRequest(pPacketData->m_pRequestedUser, m_system.GenerateUUID(), pLoginPacket->address()->c_str()));
+		if (auto pLoginPacket = FlatPacket::GetSignInRequest(pPacketStruct->m_sPacketData)) {
+			auto flatbuffer = std::make_unique<FFlatBuffer>();
+
+			m_databaseSystem.AddNewDBRequestData(new FDBSignInRequest(pPacketData->m_pRequestedUser, m_system.GenerateUUID()));
+		}
 	}
 	return nullptr;
+}
+
+// DB Result
+
+FTransmitQueueData* CMatchingPacketProcessor::DBSignInProcessed(const FPacketProcessingData* const pPacketData) {
+	using namespace SERVER::FUNCTIONS::UTIL;
+	using namespace FlatPacket;
+
+	FTransmitQueueData* pNewTransmitQueueData = nullptr;
+
+	if (auto pSignInDBResult = std::static_pointer_cast<FDBSignInRequest, void>(pPacketData->m_pMessage)) {
+		auto flatBuffer = std::make_unique<FFlatBuffer>();
+		RequestMessageType iRequestResult = RequestMessageType::RequestMessageType_Failed;
+
+		if (pSignInDBResult->m_requestResult == RequestMessageType::RequestMessageType_Succeeded) {
+			iRequestResult = RequestMessageType::RequestMessageType_Succeeded;
+
+			Log::WriteLog(L"Client [%d] Login Request Successful!", pSignInDBResult->m_iUUID);
+		}
+		else
+			Log::WriteLog(L"Client [%d] Login Request Failed!", pSignInDBResult->m_iUUID);
+		
+		pNewTransmitQueueData = new FTransmitQueueData(pPacketData->m_pRequestedUser, CreateSignInResultPacket(flatBuffer->m_flatbuffer, iRequestResult, pSignInDBResult->m_iUUID));
+	}
+	return pNewTransmitQueueData;
 }

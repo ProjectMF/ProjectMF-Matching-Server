@@ -1,0 +1,13 @@
+namespace FlatPacket;
+
+enum PacketType:byte { 
+	None=0, 
+	SignInRequest,
+	SignInResult,
+}
+
+enum RequestMessageType : byte { 
+	None=0,
+	Succeeded,
+	Failed=2 
+}

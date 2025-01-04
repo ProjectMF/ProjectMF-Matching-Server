@@ -137,14 +137,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CMatchingPacketProcessor.cpp" />
-    <ClCompile Include="CMatchingIOCP.cpp" />
+    <ClCompile Include="IOCP\CMatchingIOCP.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PacketProcessor\CMatchingPacketProcessor.cpp" />
+    <ClCompile Include="System\CDBSystem.cpp" />
+    <ClCompile Include="System\CSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CMatchingPacketProcessor.h" />
-    <ClInclude Include="CMatchingIOCP.h" />
+    <ClInclude Include="IOCP\CMatchingIOCP.h" />
+    <ClInclude Include="PacketProcessor\CMatchingPacketProcessor.h" />
     <ClInclude Include="Packet\data_define_generated.h" />
+    <ClInclude Include="Packet\sign_in_request_define_generated.h" />
+    <ClInclude Include="Packet\sign_in_result_define_generated.h" />
+    <ClInclude Include="Packet\Util\Util.h" />
+    <ClInclude Include="System\CDBSystem.h" />
+    <ClInclude Include="System\CSystem.h" />
+    <ClInclude Include="System\DBUtil\DBUtil.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
