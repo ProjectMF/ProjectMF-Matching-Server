@@ -2,7 +2,7 @@
 
 CMatchingIOCP::CMatchingIOCP() 
 	: IOCP(m_packetProcessor, std::thread::hardware_concurrency())
-	, m_packetProcessorInstance(std::bind(&CMatchingIOCP::PacketProcessedCallbackFromPacketProcessor, this, std::placeholders::_1), "localhost", "DB1", "USER1", "1234", (std::thread::hardware_concurrency() / 2))
+	, m_packetProcessorInstance(std::bind(&CMatchingIOCP::PacketProcessedCallbackFromPacketProcessor, this, std::placeholders::_1), "34.47.74.118", "GameDB", "sqlserver", "1234", (std::thread::hardware_concurrency() / 2))
 	, m_bTransmissionThreadRunState(true)
 	, m_bIOCPRunState(true) {
 

@@ -5,7 +5,7 @@
 using namespace SERVER::FUNCTIONS::LOG;
 
 CMatchingPacketProcessor::CMatchingPacketProcessor(std::function<void(void*)>&& packetProcessedCallback, const std::string& sHostName, const std::string& sDBName, const std::string& sUserName, const std::string& sPassword, const uint16_t iMaxPoolConnection)
-	: m_databaseSystem("", "", "", "", iMaxPoolConnection, std::bind(&CMatchingPacketProcessor::AddNewPacketData, this, std::placeholders::_1))
+	: m_databaseSystem(sHostName, sDBName, sUserName, sPassword, iMaxPoolConnection, std::bind(&CMatchingPacketProcessor::AddNewPacketData, this, std::placeholders::_1))
 	, m_packetProcessedCallback(packetProcessedCallback)
 	, m_bPacketProcessingThreadRunState(true) {
 
@@ -67,10 +67,10 @@ void* CMatchingPacketProcessor::PacketProcessing(FPacketProcessingData* pPacketD
 
 FTransmitQueueData* CMatchingPacketProcessor::SignInProcessing(const FPacketProcessingData* const pPacketData) {
 	if (auto pPacketStruct = std::static_pointer_cast<PACKET_STRUCT, void>(pPacketData->m_pMessage)) {
-		if (auto pLoginPacket = FlatPacket::GetSignInRequest(pPacketStruct->m_sPacketData)) {
+		if (auto pSignInPacket = FlatPacket::GetSignInRequest(pPacketStruct->m_sPacketData)) {
 			auto flatbuffer = std::make_unique<FFlatBuffer>();
 
-			m_databaseSystem.AddNewDBRequestData(new FDBSignInRequest(pPacketData->m_pRequestedUser, m_system.GenerateUUID()));
+			m_databaseSystem.AddNewDBRequestData(new FDBSignInRequest(pPacketData->m_pRequestedUser, pSignInPacket->user_id()->c_str(), m_system.GenerateUUID()));
 		}
 	}
 	return nullptr;

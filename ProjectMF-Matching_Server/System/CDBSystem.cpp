@@ -53,23 +53,24 @@ void CDBSystem::AddNewDBRequestData(FDBBaseQueueData* pNewQueueData) {
 std::shared_ptr<void> CDBSystem::SignIn(void* const pRequestData) {
 	using namespace SERVER::FUNCTIONS::UTIL;
 
-	if (auto pLoginRequest = static_cast<FDBSignInRequest* const>(pRequestData)) {
+	if (auto pSignInRequest = static_cast<FDBSignInRequest* const>(pRequestData)) {
 		auto pSTMT = m_sqlPool.GetConnection()->AllocSTMT();
 
-		SQLPrepare(*pSTMT, (SQLWCHAR*)L"{}", SQL_NTS);
+		SQLPrepare(*pSTMT, (SQLWCHAR*)L"{call sign_in_by_epic_id (?, ?)}", SQL_NTS);
+		
+		SQLBindParameter(*pSTMT, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, EPIC_USER_ID_LENGTH, 0, pSignInRequest->m_sEpicUserID, 0, NULL);
+		SQLBindParameter(*pSTMT, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_BIGINT, 0, 0, &pSignInRequest->m_iUUID, sizeof(SQLINTEGER), NULL);
 
 		if (SQLExecute(*pSTMT) != SQL_SUCCESS)
 			GetMSSQLErrorMessage(SQL_HANDLE_STMT, *pSTMT);
 		else {
 			while (SQLFetch(*pSTMT) == SQL_SUCCESS)
-				SQLGetData(*pSTMT, 1, SQL_C_LONG, &pLoginRequest->m_iUUID, sizeof(SQLINTEGER), NULL);
+				SQLGetData(*pSTMT, 1, SQL_C_LONG, &pSignInRequest->m_iUUID, sizeof(SQLINTEGER), NULL);
 			SQLFreeStmt(*pSTMT, SQL_CLOSE);
 
-			// TODO
-			if (1)
-				pLoginRequest->m_requestResult = FlatPacket::RequestMessageType_Succeeded;
+			pSignInRequest->m_requestResult = FlatPacket::RequestMessageType_Succeeded;
 		}
-		return std::shared_ptr<void>(pLoginRequest);
+		return std::shared_ptr<void>(pSignInRequest);
 	}
 	return nullptr;
 }
