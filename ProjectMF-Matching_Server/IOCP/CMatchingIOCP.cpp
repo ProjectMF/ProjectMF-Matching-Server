@@ -6,7 +6,7 @@ CMatchingIOCP::CMatchingIOCP()
 	, m_bTransmissionThreadRunState(true)
 	, m_bIOCPRunState(true) {
 
-	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_SignInRequest, std::bind(&CMatchingIOCP::LoginRequest, this, std::placeholders::_1));
+	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_SignInRequest, std::bind(&CMatchingIOCP::SignInRequest, this, std::placeholders::_1));
 
 	m_pPacketTransmissionStockQueue = std::make_unique<TRANSMISSION_QUEUE>();
 	m_pPacketTransmissionProcessQueue = std::make_unique<TRANSMISSION_QUEUE>();
@@ -66,8 +66,7 @@ void CMatchingIOCP::PacketProcessedCallbackFromPacketProcessor(void* pPacketPrce
 	}
 }
 
-void CMatchingIOCP::LoginRequest(PacketQueueData* const pPacketData) {
-	if (auto pConnection = reinterpret_cast<SERVER::NETWORKMODEL::IOCP::CONNECTION*>(pPacketData->m_pOwner)) {
+void CMatchingIOCP::SignInRequest(PacketQueueData* const pPacketData) {
+	if (auto pConnection = reinterpret_cast<SERVER::NETWORKMODEL::IOCP::CONNECTION*>(pPacketData->m_pOwner))
 		m_packetProcessorInstance.AddNewPacketData(new FPacketProcessingData(pConnection, FlatPacket::PacketType::PacketType_SignInRequest, pPacketData->m_packetData));
-	}
 }

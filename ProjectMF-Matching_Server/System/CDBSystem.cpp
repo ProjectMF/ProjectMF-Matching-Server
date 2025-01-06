@@ -64,11 +64,13 @@ std::shared_ptr<void> CDBSystem::SignIn(void* const pRequestData) {
 		if (SQLExecute(*pSTMT) != SQL_SUCCESS)
 			GetMSSQLErrorMessage(SQL_HANDLE_STMT, *pSTMT);
 		else {
-			while (SQLFetch(*pSTMT) == SQL_SUCCESS)
+			if (SQLFetch(*pSTMT) == SQL_SUCCESS) {
 				SQLGetData(*pSTMT, 1, SQL_C_LONG, &pSignInRequest->m_iUUID, sizeof(SQLINTEGER), NULL);
+				SQLGetData(*pSTMT, 2, SQL_C_CHAR, pSignInRequest->m_sUserName, MAX_NVARCHAR_LENGTH, NULL);
+			}
 			SQLFreeStmt(*pSTMT, SQL_CLOSE);
 
-			pSignInRequest->m_requestResult = FlatPacket::RequestMessageType_Succeeded;
+			pSignInRequest->m_requestResult = MakeDetailMessageType(FlatPacket::RequestMessageType_Succeeded, (strlen(pSignInRequest->m_sUserName) > 0) ? FlatPacket::SignInMessageDetail_ExistsUser : FlatPacket::SignInMessageDetail_NewUser);
 		}
 		return std::shared_ptr<void>(pSignInRequest);
 	}

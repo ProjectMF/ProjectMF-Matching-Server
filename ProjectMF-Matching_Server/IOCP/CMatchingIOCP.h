@@ -45,7 +45,7 @@ private:
 	void PacketTransmission();
 	void PacketProcessedCallbackFromPacketProcessor(void* pPacketPrcessingResult);
 
-	void LoginRequest(PacketQueueData* const pPacketData);
+	void SignInRequest(PacketQueueData* const pPacketData);
 
 public:
 	CMatchingIOCP();

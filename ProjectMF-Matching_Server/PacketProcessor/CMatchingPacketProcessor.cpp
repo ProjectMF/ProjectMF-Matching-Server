@@ -11,7 +11,6 @@ CMatchingPacketProcessor::CMatchingPacketProcessor(std::function<void(void*)>&& 
 
 	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_SignInRequest, std::bind(&CMatchingPacketProcessor::SignInProcessing, this, std::placeholders::_1));
 
-
 	m_packetProcessor.emplace(EDBRequestType::EDBType_SignInRequest, std::bind(&CMatchingPacketProcessor::DBSignInProcessed, this, std::placeholders::_1));
 
 	m_pPacketProcessQueue = std::make_unique<PACKET_QUEUE>();
@@ -86,17 +85,13 @@ FTransmitQueueData* CMatchingPacketProcessor::DBSignInProcessed(const FPacketPro
 
 	if (auto pSignInDBResult = std::static_pointer_cast<FDBSignInRequest, void>(pPacketData->m_pMessage)) {
 		auto flatBuffer = std::make_unique<FFlatBuffer>();
-		RequestMessageType iRequestResult = RequestMessageType::RequestMessageType_Failed;
 
-		if (pSignInDBResult->m_requestResult == RequestMessageType::RequestMessageType_Succeeded) {
-			iRequestResult = RequestMessageType::RequestMessageType_Succeeded;
-
+		if (GetMessageTypeFromMessage(pSignInDBResult->m_requestResult) == RequestMessageType::RequestMessageType_Succeeded)
 			Log::WriteLog(L"Client [%d] Login Request Successful!", pSignInDBResult->m_iUUID);
-		}
 		else
 			Log::WriteLog(L"Client [%d] Login Request Failed!", pSignInDBResult->m_iUUID);
 		
-		pNewTransmitQueueData = new FTransmitQueueData(pPacketData->m_pRequestedUser, CreateSignInResultPacket(flatBuffer->m_flatbuffer, iRequestResult, pSignInDBResult->m_iUUID));
+		pNewTransmitQueueData = new FTransmitQueueData(pPacketData->m_pRequestedUser, CreateSignInResultPacket(flatBuffer->m_flatbuffer, pSignInDBResult->m_requestResult, pSignInDBResult->m_iUUID, pSignInDBResult->m_sUserName));
 	}
 	return pNewTransmitQueueData;
 }

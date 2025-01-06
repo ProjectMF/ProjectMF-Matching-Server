@@ -19,31 +19,37 @@ enum PacketType : int8_t {
   PacketType_None = 0,
   PacketType_SignInRequest = 1,
   PacketType_SignInResult = 2,
+  PacketType_UserAccountInfoRequest = 3,
+  PacketType_UserAccountInfoResult = 4,
   PacketType_MIN = PacketType_None,
-  PacketType_MAX = PacketType_SignInResult
+  PacketType_MAX = PacketType_UserAccountInfoResult
 };
 
-inline const PacketType (&EnumValuesPacketType())[3] {
+inline const PacketType (&EnumValuesPacketType())[5] {
   static const PacketType values[] = {
     PacketType_None,
     PacketType_SignInRequest,
-    PacketType_SignInResult
+    PacketType_SignInResult,
+    PacketType_UserAccountInfoRequest,
+    PacketType_UserAccountInfoResult
   };
   return values;
 }
 
 inline const char * const *EnumNamesPacketType() {
-  static const char * const names[4] = {
+  static const char * const names[6] = {
     "None",
     "SignInRequest",
     "SignInResult",
+    "UserAccountInfoRequest",
+    "UserAccountInfoResult",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNamePacketType(PacketType e) {
-  if (::flatbuffers::IsOutRange(e, PacketType_None, PacketType_SignInResult)) return "";
+  if (::flatbuffers::IsOutRange(e, PacketType_None, PacketType_UserAccountInfoResult)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesPacketType()[index];
 }

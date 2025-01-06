@@ -15,13 +15,6 @@
 
 using namespace SERVER::NETWORK::PACKET::UTIL::SERIALIZATION;
 
-enum EEventType : uint8_t {
-	EEID_None,
-	EEID_Attendance,
-	EEID_New,
-	EEID_Special
-};
-
 static SYSTEMTIME GetCurrentDate() {
 	SYSTEMTIME sysTime;
 	auto localTime = boost::posix_time::second_clock::local_time();
@@ -76,16 +69,16 @@ static std::string GetTimeLeftUntilExpiration(const SQL_TIMESTAMP_STRUCT& receiv
 	return std::to_string(remainDate.hours() / 24) + "Day " + std::to_string(remainDate.hours() % 24) + "Hour";
 }
 
-static uint32_t GetEventKey(const uint16_t iEventType, const uint16_t iEventID) {
-	return ((iEventType << (sizeof(uint16_t) * 8)) | iEventID);
+static uint16_t MakeDetailMessageType(const int8_t iMessageType, const int8_t iDetailType) {
+	return ((iMessageType << 8) | iDetailType);
 }
 
-static uint16_t GetEventTypeFromEventKey(const uint32_t iEventKey) {
-	return static_cast<uint16_t>(iEventKey >> (sizeof(uint16_t) * 8));
+static uint8_t GetMessageTypeFromMessage(const uint16_t iMessage) {
+	return static_cast<uint8_t>(iMessage >> 8);
 }
 
-static uint16_t GetEventIDFromEventKey(const uint32_t iEventKey) {
-	return static_cast<uint16_t>(iEventKey);
+static uint8_t GetDetailMessageFromMessage(const uint16_t iMessage) {
+	return static_cast<uint8_t>(iMessage);
 }
 
 static std::string SQLDateTimeToString(const SQL_DATE_STRUCT& date) {
@@ -141,6 +134,6 @@ static SQL_TIMESTAMP_STRUCT SystemTimeToSQLTimeStampStruct(const SYSTEMTIME& sys
 	return ret;
 }
 
-static SERVER::NETWORK::PACKET::PACKET_STRUCT CreateSignInResultPacket(flatbuffers::FlatBufferBuilder& builder, const int16_t iMessageType, const int32_t iUUID) {
-	return Serialize<FlatPacket::SignInResult>(builder, FlatPacket::PacketType_SignInResult, FlatPacket::CreateSignInResult(builder, iMessageType, iUUID));
+static SERVER::NETWORK::PACKET::PACKET_STRUCT CreateSignInResultPacket(flatbuffers::FlatBufferBuilder& builder, const uint16_t iMessageType, const int32_t iUUID, const char* const sUserName) {
+	return Serialize<FlatPacket::SignInResult>(builder, FlatPacket::PacketType_SignInResult, FlatPacket::CreateSignInResult(builder, iMessageType, iUUID, builder.CreateString(sUserName)));
 }

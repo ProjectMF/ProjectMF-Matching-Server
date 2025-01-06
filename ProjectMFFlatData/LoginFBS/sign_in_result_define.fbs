@@ -1,8 +1,16 @@
 namespace FlatPacket;
 
+enum SignInMessageDetail:byte { 
+	None=0, 
+	NewUser,
+	ExistsUser,
+	UnknownError
+}
+
 table SignInResult {
-	message_type:short;
+	message_type:ushort;
 	uuid:int;
+	user_name:string;
 }
 
 root_type SignInResult;

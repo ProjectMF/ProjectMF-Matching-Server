@@ -4,6 +4,8 @@ enum PacketType:byte {
 	None=0, 
 	SignInRequest,
 	SignInResult,
+	UserAccountInfoRequest,
+	UserAccountInfoResult
 }
 
 enum RequestMessageType : byte { 
