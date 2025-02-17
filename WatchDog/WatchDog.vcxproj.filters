@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\WatchDog">
+      <UniqueIdentifier>{70ae0857-fa63-46cc-906a-2dd0ece93731}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Packet">
+      <UniqueIdentifier>{d93638f1-49c7-4918-8671-3fdce345df90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\MailClient">
+      <UniqueIdentifier>{9fd7b9de-cc31-43bd-b021-187310e67f27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Util">
+      <UniqueIdentifier>{4d4d35fe-2e1c-444e-969c-60568c3cc0ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\MailClient\DumpTransmitSystem">
+      <UniqueIdentifier>{b4640c26-27bd-4373-99b2-91c2485a2764}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WatchDog\WatchDog.cpp">
+      <Filter>Header Files\WatchDog</Filter>
+    </ClCompile>
+    <ClCompile Include="MailClient\MailClient.cpp">
+      <Filter>Header Files\MailClient</Filter>
+    </ClCompile>
+    <ClCompile Include="MailClient\DumpTransmitSystem\DumpTransmitSystem.cpp">
+      <Filter>Header Files\MailClient\DumpTransmitSystem</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WatchDog\WatchDog.h">
+      <Filter>Header Files\WatchDog</Filter>
+    </ClInclude>
+    <ClInclude Include="Packet\mail_data_define_generated.h">
+      <Filter>Header Files\Packet</Filter>
+    </ClInclude>
+    <ClInclude Include="MailClient\MailClient.h">
+      <Filter>Header Files\MailClient</Filter>
+    </ClInclude>
+    <ClInclude Include="Util\MailUtil.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="MailClient\DumpTransmitSystem\DumpTransmitSystem.h">
+      <Filter>Header Files\MailClient\DumpTransmitSystem</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{2d1c647e-72dc-4611-b703-b99d37c18fc0}</ProjectGuid>
-    <RootNamespace>MFServer</RootNamespace>
+    <ProjectGuid>{1495bd5b-0bf0-4698-a03c-fa8058e015aa}</ProjectGuid>
+    <RootNamespace>WatchDog</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -104,10 +104,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\sherl\source\repos\Server_Library-move;C:\Users\sherl\OneDrive\Documents\boost_1_84_0;C:\Users\sherl\OneDrive\Documents\flatbuffers-24.3.25\include;C:\Users\Move_Daegu24\Documents\flatbuffers-24.3.25\include;C:\Users\Move_Daegu24\source\repos\Server_Library;C:\Users\Move_Daegu24\Documents\boost_1_84_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Users\sherl\OneDrive\Documents\boost_1_84_0\stage\lib;C:\Users\sherl\source\repos\Server_Library-move\x64\Debug;C:\Users\Move_Daegu24\source\repos\Server_Library\x64\Debug;C:\Users\Move_Daegu24\Documents\boost_1_84_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Functions.lib;Network.lib;NetworkModel.lib;WatchDog.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -132,14 +135,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CIOCP.cpp" />
+    <ClCompile Include="MailClient\DumpTransmitSystem\DumpTransmitSystem.cpp" />
+    <ClCompile Include="MailClient\MailClient.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="WatchDog\WatchDog.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CIOCP.h" />
-    <ClInclude Include="data_define_generated.h" />
-    <ClInclude Include="sign_in_request_define_generated.h" />
-    <ClInclude Include="sign_in_result_define_generated.h" />
+    <ClInclude Include="MailClient\DumpTransmitSystem\DumpTransmitSystem.h" />
+    <ClInclude Include="MailClient\MailClient.h" />
+    <ClInclude Include="Packet\mail_data_define_generated.h" />
+    <ClInclude Include="Util\MailUtil.h" />
+    <ClInclude Include="WatchDog\WatchDog.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

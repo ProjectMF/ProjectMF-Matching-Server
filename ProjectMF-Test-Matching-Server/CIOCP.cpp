@@ -30,10 +30,16 @@ uint16_t GenerateUUID() {
 }
 
 
-CIOCP::CIOCP() : IOCP(m_packetProcessor) {
+CIOCP::CIOCP() : IOCP(m_packetProcessor), m_watchDogClient("", true) {
+	m_watchDogClient.m_OnDestroyCallback = std::function<void()>([&]() {
+		m_bMainThreadRunState = false;
+	});
+
 	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_SignInRequest, std::bind(&CIOCP::SignInRequest, this, std::placeholders::_1));
 	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_FindMatchRequest, std::bind(&CIOCP::FindMatchRequest, this, std::placeholders::_1));
 	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_CreateSessionRequest, std::bind(&CIOCP::CreateSessionRequest, this, std::placeholders::_1));
+
+	m_bMainThreadRunState = true;
 }
 
 CIOCP::~CIOCP() {
@@ -41,17 +47,28 @@ CIOCP::~CIOCP() {
 }
 
 bool CIOCP::Initialize(const EPROTOCOLTYPE protocolType, SERVER::FUNCTIONS::SOCKETADDRESS::SocketAddress& bindAddress) {
-	return IOCP::Initialize(protocolType, bindAddress);
+	if (IOCP::Initialize(protocolType, bindAddress)) {
+		SocketAddress watchDogServerAddress("127.0.0.1", 3590);
+		if (!m_watchDogClient.Initialize(EPROTOCOLTYPE::EPT_TCP, watchDogServerAddress))
+			return false;
+	}
+	return true;
 }
 
 void CIOCP::Run() {
 	IOCP::Run();
 
+	m_watchDogClient.Run();
 }
 
 void CIOCP::Destroy() {
-	IOCP::Destroy();
+	m_watchDogClient.Destroy();
 
+	IOCP::Destroy();
+}
+
+void CIOCP::BeginDestroy(const bool bRestart) {
+	m_watchDogClient.BeginDestroy(bRestart);
 }
 
 

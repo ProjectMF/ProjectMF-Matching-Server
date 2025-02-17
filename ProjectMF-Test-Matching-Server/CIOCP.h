@@ -1,7 +1,9 @@
 #pragma once
 #define NOMINMAX
 #include <ServerLibrary/NetworkModel/IOCP/IOCP.hpp>
+#include <ServerLibrary/WatchDog/WatchDogClient/WatchDogClient.hpp>
 #include <flatbuffers/flatbuffers.h>
+#include <condition_variable>
 #include <unordered_map>
 
 using namespace SERVER::NETWORKMODEL;
@@ -53,6 +55,11 @@ public:
 	virtual void Run() override final;
 	virtual void Destroy() override final;
 
+public:
+	void BeginDestroy(const bool bRestart);
+
+	__forceinline bool GetIOCPRunState() const { return m_bMainThreadRunState; }
+
 protected:
 	virtual ::IOCP::CONNECTION* OnIOTryDisconnect(User_Server* const pClient) override final;
 
@@ -69,6 +76,12 @@ private:
 
 	std::mutex m_sessionInfoMutex;
 	std::unordered_map<int32_t, FSessionInformation*> m_sessionInformation;
+
+	SERVER::WATCHDOG::CLIENT::CWatchDogClient m_watchDogClient;
+
+	std::condition_variable m_cvWatchDog;
+
+	std::atomic_bool m_bMainThreadRunState;
 
 };
 
