@@ -14,17 +14,30 @@ https://flatbuffers.dev/
 
 
 ## 1
+**게임 인스턴스는 BP_MFGameInstance로 설정해줍니다.**  
+![image](https://github.com/user-attachments/assets/380522a2-9f06-4708-9731-0665ca2f4657)
+
+
+## 2
 **콘텐츠 폴더에 BP_MFGameInstance가 존재합니다.**   
 ![image](https://github.com/user-attachments/assets/a9f85ca6-3787-4ff2-9ffa-48c15dd17eb1)
 
-## 2
+
+## 3
 **열어보시면 아래와 같이 게임 맵 이름을 넣을 수 있습니다.**  
 ![image](https://github.com/user-attachments/assets/93bdea62-704f-4aa6-b67d-6466d7f2f554)
 
-## 3
+
+## 4
 **콘텐츠 폴더에서 맵 에셋 우클릭하시면, 레퍼런스 복사 있을건데 클릭하셔서 Game Name Name 프로퍼티에 적어주시면 됩니다.**  
 **네모칸 내용만 빼서 적어주시면 됨.**  
 ![image](https://github.com/user-attachments/assets/b7b588cd-1611-48d3-a048-16e5ae4d9a53)
 
-## 4
+
+## 5
+**테스트에 사용될 게임모드는 MFGameModeBase를 상속받게 만들어주세요.**  
+![image](https://github.com/user-attachments/assets/8b9def29-d4b8-4857-b5d4-293435f1a31c)
+
+
+## 6
 **이것만 하시면 따로 뭐 설정할 필요없이 접속 가능.**
