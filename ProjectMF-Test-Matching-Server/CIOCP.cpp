@@ -9,15 +9,20 @@
 #include <rpc.h>
 #include <ServerLibrary/Network/Packet/Serialization/serialization.hpp>
 
+static SERVER::FUNCTIONS::CRITICALSECTION::CriticalSection g_UUID_CS;
 
 uint16_t GenerateUUID() {
 	UUID userUUID;
+
+	g_UUID_CS.Lock();
 
 	if (UuidCreate(&userUUID) != RPC_S_OK)
 		return 0;
 
 	RPC_STATUS result;
 	auto iUUID = UuidHash(&userUUID, &result);
+
+	g_UUID_CS.UnLock();
 
 	if (result != RPC_S_OK)
 		return 0;
@@ -49,20 +54,52 @@ void CIOCP::Destroy() {
 
 }
 
+
+::IOCP::CONNECTION* CIOCP::OnIOTryDisconnect(User_Server* const pClient) {
+	if (auto pConnection = ::IOCP::IOCP::OnIOTryDisconnect(pClient)) {
+		m_userInfoMutex.lock();
+
+		const auto& user = m_userInformation.find(pConnection);
+
+		if (user != m_userInformation.cend()) {
+			if (user->second->m_bIsInGame) {
+				m_sessionInfoMutex.lock();
+
+				const auto& session = m_sessionInformation.find(user->second->m_iSessionUniqueID);
+				if (session != m_sessionInformation.cend()) {
+					if (session->second->m_iCurrentUserCount <= 1)
+						m_sessionInformation.erase(session);
+					else
+						session->second->m_iCurrentUserCount--;
+				}
+
+				m_sessionInfoMutex.unlock();
+
+			}
+			m_userInformation.erase(user);
+		}
+
+		m_userInfoMutex.unlock();
+		return pConnection;
+	}
+	return nullptr;
+}
+
+
 void CIOCP::SignInRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPacketData) {
 	if (auto pConnection = reinterpret_cast<SERVER::NETWORKMODEL::IOCP::CONNECTION*>(pPacketData->m_pOwner)) {
 		auto pFlatBuffer = new FFlatBuffer;
 		uint16_t iUUID = 0;
 		uint16_t iSignInResult = FlatPacket::RequestMessageType::RequestMessageType_Failed;
-		bool bIsHost = false;
 
 		if (const auto pSignInRequestData = FlatPacket::GetSignInRequest(pPacketData->m_packetData->m_sPacketData)) {
 			iUUID = GenerateUUID();
 
-			UUIDListMutex.lock();
-			bIsHost = m_userUUIDList.size() <= 0;
-			m_userUUIDList.push_back(iUUID);
-			UUIDListMutex.unlock();
+			m_userInfoMutex.lock();
+
+			m_userInformation.insert(std::make_pair(pConnection, new FUserInformation(iUUID)));
+
+			m_userInfoMutex.unlock();
 
 			iSignInResult = FlatPacket::RequestMessageType::RequestMessageType_Succeeded;
 		}
@@ -82,24 +119,37 @@ void CIOCP::FindMatchRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPa
 			uint16_t iFindMatchResult = FlatPacket::RequestMessageType::RequestMessageType_Succeeded | (FlatPacket::FindMatchResultType::FindMatchResultType_Failed << 8);
 			flatbuffers::Offset<flatbuffers::String> sessiondIDOffset = 0;
 
-			if (m_sessionIDList.size() > 0) {
-				SessionIDListMutex.lock();
+			m_sessionInfoMutex.lock();
+			if (m_sessionInformation.size() > 0) {
 				bool bFinded = false;
+				int32_t iCachedSessionUniqueID = 0;
 				std::string sCachedSessionID;
-				for (auto& iterator : m_sessionIDList) {
-					if (iterator.second < 10) {
-						sCachedSessionID = iterator.first;
+				
+				for (auto& iterator : m_sessionInformation) {
+					if (iterator.second->m_iCurrentUserCount < 10) {
+						iterator.second->m_iCurrentUserCount++;
+
+						sCachedSessionID = iterator.second->m_sSessionID;
+						iCachedSessionUniqueID = iterator.first;
 						bFinded = true;
 						break;
 					}
 				}
-				SessionIDListMutex.unlock();
 
 				if (bFinded) {
+					m_userInfoMutex.lock();
+
+					const auto& user = m_userInformation.find(pConnection);
+					if (user != m_userInformation.cend())
+						user->second->JoinNewSession(iCachedSessionUniqueID);
+
+					m_userInfoMutex.unlock();
+
 					iFindMatchResult = FlatPacket::RequestMessageType::RequestMessageType_Succeeded | (FlatPacket::FindMatchResultType::FindMatchResultType_Succeeded << 8);
 					sessiondIDOffset = pFlatBuffer->m_flatbuffer.CreateString(sCachedSessionID.c_str());
 				}
 			}
+			m_sessionInfoMutex.unlock();
 
 			pConnection->m_pUser->Send(
 				SERVER::NETWORK::PACKET::UTIL::SERIALIZATION::Serialize(
@@ -113,11 +163,21 @@ void CIOCP::FindMatchRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPa
 void CIOCP::CreateSessionRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPacketData) {
 	if (auto pConnection = reinterpret_cast<SERVER::NETWORKMODEL::IOCP::CONNECTION*>(pPacketData->m_pOwner)) {
 		if (const auto pCreateSessionRequestData = FlatPacket::GetCreateSessionRequest(pPacketData->m_packetData->m_sPacketData)) {
-			SessionIDListMutex.lock();
+			int32_t iCachedSessionUniqueID = GenerateUUID();
 
-			m_sessionIDList.push_back(std::make_pair(pCreateSessionRequestData->session_id()->c_str(), 1));
+			m_sessionInfoMutex.lock();
 
-			SessionIDListMutex.unlock();
+			m_sessionInformation.insert(std::make_pair(iCachedSessionUniqueID, new FSessionInformation(pCreateSessionRequestData->session_id()->c_str())));
+
+			m_sessionInfoMutex.unlock();
+
+			m_userInfoMutex.lock();
+
+			const auto& user = m_userInformation.find(pConnection);
+			if (user != m_userInformation.cend())
+				user->second->JoinNewSession(iCachedSessionUniqueID);
+
+			m_userInfoMutex.unlock();
 		}
 	}
 }

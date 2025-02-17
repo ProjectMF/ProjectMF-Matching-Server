@@ -1,9 +1,9 @@
 #include <iostream>
 #include <WinSock2.h>
 #pragma comment(lib, "ws2_32.lib")
-#include "../MF-Server/sign_in_request_define_generated.h"
-#include "../MF-Server/data_define_generated.h"
-#include "../MF-Server/sign_in_result_define_generated.h"
+#include "../ProjectMF-Test-Matching-Server/data_define_generated.h"
+#include "../ProjectMF-Test-Matching-Server/sign_in_request_define_generated.h"
+#include "../ProjectMF-Test-Matching-Server/sign_in_result_define_generated.h"
 #include "ServerLibrary/Network/Packet/Serialization/serialization.hpp"
 
 int main() {
@@ -19,7 +19,7 @@ int main() {
 	memset((char*)&socketaddr, 0, sizeof(struct sockaddr_in));
 	socketaddr.sin_family = AF_INET;
 	socketaddr.sin_port = htons(19780);
-	socketaddr.sin_addr.s_addr = inet_addr("221.145.106.173");
+	socketaddr.sin_addr.s_addr = inet_addr("54.180.22.22");
 	clid = socket(AF_INET, SOCK_STREAM, 0);
 	if (clid < 0) {
 		perror("socket");
@@ -49,7 +49,7 @@ int main() {
 
 	auto p = FlatPacket::GetSignInResult(recvMessageBuffer + sizeof(packet.m_packetInfo));
 
-	std::cout << p->uuid() << '\t' << p->host() << std::endl;
+	std::cout << p->uuid() << std::endl;
 
 	closesocket(clid);
 	printf("Disconnected.\n");
