@@ -1,7 +1,0 @@
-namespace FlatPacket;
-
-table SignInRequest {
-	user_id:string;
-}
-
-root_type SignInRequest;
