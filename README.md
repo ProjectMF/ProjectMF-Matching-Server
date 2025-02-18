@@ -1,7 +1,9 @@
 # 사용 오픈 라이브러리
 https://github.com/PPODO/Server_Library  
 https://www.boost.org/  
-https://flatbuffers.dev/
+https://flatbuffers.dev/  
+https://slproweb.com/products/Win32OpenSSL.html  
+https://github.com/yourWaifu/sleepy-discord  
 
 
 # 테스트 서버 접속 방법
