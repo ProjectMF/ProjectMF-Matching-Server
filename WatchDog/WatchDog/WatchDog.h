@@ -2,28 +2,30 @@
 #define NOMINMAX
 #define _WINSOCKAPI_
 #include <ServerLibrary/NetworkModel/IOCP/IOCP.hpp>
-#include <ServerLibrary/WatchDog/WatchDogClient/WatchDogClient.hpp>
-#include <ServerLibrary/WatchDog/Util/WatchDogUtil.h>
+#include <ServerLibrary/WatchDogClient/WatchDogClient/WatchDogClient.hpp>
+#include <ServerLibrary/WatchDogClient/Util/WatchDogUtil.h>
+#include <ServerLibrary/Functions/Timer/Timer.hpp>
 #include <unordered_map>
 #include "../MailClient/MailClient.h"
+#include "../DiscordBot/DiscordBot.h"
 
 using namespace SERVER::NETWORKMODEL::IOCP;
+using namespace SERVER::NETWORKMODEL::BASEMODEL;
+using namespace SERVER::NETWORK::PACKET;
+
+struct FClientInformation {
+public:
+	std::string m_sProcessName;
+	uint64_t m_iDiscordBotChannelID;
+
+public:
+	FClientInformation(const std::string& sProcessName, const uint64_t iDiscordBotChannelID) : m_sProcessName(sProcessName), m_iDiscordBotChannelID(iDiscordBotChannelID) {
+
+	};
+
+};
 
 class CWatchDog : public IOCP {
-private:
-	PACKETPROCESSOR m_packetProcessor;
-
-	std::unordered_map<CONNECTION*, SERVER::WATCHDOG::CLIENT::FWatchDogClientInformation> m_clientInformation;
-
-	CMailClient m_mailClient;
-
-private:
-	void NewClientRequest(PacketQueueData* const pPacketData);
-	void ClientDisconnectRequest(PacketQueueData* const pPacketData);
-
-private:
-	bool ClientDisconnect(CONNECTION* pConnection);
-
 public:
 	CWatchDog();
 
@@ -31,6 +33,24 @@ public:
 	virtual void Run() override final;
 	virtual void Destroy() override final;
 
-	virtual CONNECTION* OnIODisconnect(User_Server* const pClient) override final;
+private:
+	void NewProcessDetected(PacketQueueData* const pPacketData);
+	void ProcessTerminated(PacketQueueData* const pPacketData);
+	void PingReceived(PacketQueueData* const pPacketData);
+
+	void ReceivedDump(PacketQueueData* const pPacketData);
+
+	void SendPingToClients();
+
+private:
+	PACKETPROCESSOR m_packetProcessor;
+
+	SERVER::FUNCTIONS::CRITICALSECTION::CriticalSection m_csForClientInformation;
+	std::unordered_map<CONNECTION*, FClientInformation> m_clientInformation;
+
+	CMailClient m_mailClient;
+	CDiscordBot m_discordBot;
+
+	SERVER::FUNCTIONS::TIMER::CTimerSystem m_timerSystem;
 
 };

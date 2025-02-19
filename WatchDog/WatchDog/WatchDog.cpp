@@ -1,41 +1,48 @@
 #include "WatchDog.h"
 #include "../Util/MailUtil.h"
 #include <sstream>
+#include <ServerLibrary/Functions/FPSManagement/FPSManager.hpp>
 
-CWatchDog::CWatchDog() : IOCP(m_packetProcessor, 10) {
-	m_packetProcessor.emplace(WatchDogPacket::PacketType_WatchDogStart, std::bind(&CWatchDog::NewClientRequest, this, std::placeholders::_1));
-	m_packetProcessor.emplace(WatchDogPacket::PacketType_WatchDogEndRequest, std::bind(&CWatchDog::ClientDisconnectRequest, this, std::placeholders::_1));
+#define SECOND 60
+#define MINUTE(x) ((x) * 60)
+#define HOUR(x) ((x) * (MINUTE(x) * SECOND))
+
+CWatchDog::CWatchDog() : IOCP(m_packetProcessor, 10), m_discordBot("") {
+	m_packetProcessor.emplace(WatchDogPacket::PacketType_NewProcessDetected, std::bind(&CWatchDog::NewProcessDetected, this, std::placeholders::_1));
+	m_packetProcessor.emplace(WatchDogPacket::PacketType_ProcessTerminated, std::bind(&CWatchDog::ProcessTerminated, this, std::placeholders::_1));
+	m_packetProcessor.emplace(WatchDogPacket::PacketType_DumpFile, std::bind(&CWatchDog::ReceivedDump, this, std::placeholders::_1));
+	m_packetProcessor.emplace(WatchDogPacket::PacketType_Ping, std::bind(&CWatchDog::PingReceived, this, std::placeholders::_1));
 }
 
 bool CWatchDog::Initialize(const EPROTOCOLTYPE protocolType, SocketAddress& serverAddress) {
 	if (IOCP::Initialize(protocolType, serverAddress)) {
+		m_discordBot.Initialize();
+		
 		SocketAddress mailServerAddress("127.0.0.1", 3540);
-		return m_mailClient.Initialize(EPROTOCOLTYPE::EPT_TCP, mailServerAddress);
+		return m_mailClient.Initialize(mailServerAddress);
 	}
 	return false;
 }
 
 void CWatchDog::Run() {
-	IOCP::Run();
+	using namespace SERVER::FUNCTIONS;
+	if (!FPS::FPSMANAGER::Skip()) {
+		IOCP::Run();
+		
 
+	}
 }
 
 void CWatchDog::Destroy() {
 	IOCP::Destroy();
 
 	m_mailClient.Destroy();
+	m_discordBot.Destroy();
 }
 
-CONNECTION* CWatchDog::OnIODisconnect(User_Server* const pClient) {
-	if (auto pConnection = IOCP::OnIODisconnect(pClient)) {
-		ClientDisconnect(pConnection);
-		return pConnection;
-	}
-	return nullptr;
-}
-
-void CWatchDog::NewClientRequest(PacketQueueData* const pPacketData) {
+void CWatchDog::NewProcessDetected(PacketQueueData* const pPacketData) {
 	using namespace SERVER::FUNCTIONS::UTIL;
+	using namespace SERVER::FUNCTIONS::CRITICALSECTION;
 
 	auto pConnection = reinterpret_cast<CONNECTION*>(pPacketData->m_pOwner);
 	auto pPacket = WatchDogPacket::GetWatchDogClientInformation(pPacketData->m_packetData->m_sPacketData);
@@ -43,56 +50,92 @@ void CWatchDog::NewClientRequest(PacketQueueData* const pPacketData) {
 	if (pConnection && pPacket) {
 		SERVER::FUNCTIONS::LOG::Log::WriteLog(L"Watch Dog : New Process Detected! [Name] : [%ls]", MBToUni(pPacket->program_name()->str()).c_str());
 
-		SERVER::WATCHDOG::CLIENT::FWatchDogClientInformation newInformation(pPacket->program_name()->c_str(), pPacket->program_path()->c_str(), pPacket->dump_file_path()->c_str(), pPacket->command_line_argv()->c_str(), pPacket->enable_restart());
-		m_mailClient.RequestMail(Mail::RequestType_Start, newInformation.m_sProgramName);
-		m_clientInformation.emplace(pConnection, newInformation);
+		FClientInformation newProcessInformation(pPacket->program_name()->c_str(), pPacket->discord_bot_channe_id());
+		
+		m_mailClient.RequestMail(Mail::RequestType_Start, newProcessInformation.m_sProcessName);
+
+		CriticalSectionGuard lock(m_csForClientInformation);
+		auto emplaceResult = m_clientInformation.emplace(pConnection, newProcessInformation);
+
+		if (emplaceResult.second && newProcessInformation.m_iDiscordBotChannelID != 0) {
+			m_discordBot.Send(newProcessInformation.m_iDiscordBotChannelID, EMessageLevel::E_Alarm, "NOTIFY", "```ansi\n[1;32m[" + newProcessInformation.m_sProcessName+ "] Is Running.\n[1m```");
+
+			m_timerSystem.BindTimer(std::bind(&CWatchDog::SendPingToClients, this), 5, false);
+		}
 	}
 }
 
-void CWatchDog::ClientDisconnectRequest(PacketQueueData* const pPacketData) {
+void CWatchDog::ProcessTerminated(PacketQueueData* const pPacketData) {
 	using namespace SERVER::FUNCTIONS::UTIL;
+	using namespace SERVER::FUNCTIONS::CRITICALSECTION;
 
 	auto pConnection = reinterpret_cast<CONNECTION*>(pPacketData->m_pOwner);
-	auto pPacket = WatchDogPacket::GetWatchDogClientEndRequest(pPacketData->m_packetData->m_sPacketData);
+	auto pTerminatedPacket = WatchDogPacket::GetWatchDogClientTerminated(pPacketData->m_packetData->m_sPacketData);
 
-	if (pConnection && pPacket) {
+	if (pConnection && pTerminatedPacket) {
+		CriticalSectionGuard lock(m_csForClientInformation);
+
 		auto findResult = m_clientInformation.find(pConnection);
 		if (findResult != m_clientInformation.cend()) {
-			flatbuffers::FlatBufferBuilder flatBuffer;
+			if (pTerminatedPacket->has_dump()) {
+				SERVER::FUNCTIONS::LOG::Log::WriteLog(L"Watch Dog : [%ls] Process Aborted! Watch Dog Will Email You The Dump File!", MBToUni(findResult->second.m_sProcessName).c_str());
+				m_discordBot.Send(findResult->second.m_iDiscordBotChannelID, EMessageLevel::E_Error, "NOTIFY", "```ansi\n[1;31m[" + findResult->second.m_sProcessName+ "] Is Aborted![1m```");
+			}
+			else {
+				m_mailClient.RequestMail(Mail::RequestType_Stop, findResult->second.m_sProcessName);
 
-			pConnection->m_pUser->Send(SERVER::WATCHDOG::UTIL::CreateWatchDogClientEndResultPacket(flatBuffer, WatchDogPacket::RequestMessageType::RequestMessageType_Succeeded));
-
-			SERVER::FUNCTIONS::LOG::Log::WriteLog(L"Watch Dog : [%ls] Process Terminated!", MBToUni(findResult->second.m_sProgramName).c_str());
-			m_mailClient.RequestMail(Mail::RequestType_Stop, findResult->second.m_sProgramName);
-			findResult->second.m_bProgramRunningState = false;
-			findResult->second.m_bEnableRestart = pPacket->enable_restart();
+				SERVER::FUNCTIONS::LOG::Log::WriteLog(L"Watch Dog : [%ls] Process Terminated!", MBToUni(findResult->second.m_sProcessName).c_str());
+				m_discordBot.Send(findResult->second.m_iDiscordBotChannelID, EMessageLevel::E_Alarm, "NOTIFY", "```ansi\n[1;34m[" + findResult->second.m_sProcessName + "] Is Stopped.[1m```");
+			}
+			m_clientInformation.erase(findResult);
 		}
 	}
 }
 
-bool CWatchDog::ClientDisconnect(CONNECTION* pConnection) {
+void CWatchDog::PingReceived(PacketQueueData* const pPacketData) {
 	using namespace SERVER::FUNCTIONS::UTIL;
+	using namespace SERVER::FUNCTIONS::CRITICALSECTION;
 
-	auto findResult = m_clientInformation.find(pConnection);
-	if (findResult != m_clientInformation.cend()) {
-		if (findResult->second.m_bProgramRunningState) {
-			SERVER::FUNCTIONS::LOG::Log::WriteLog(L"Watch Dog : [%ls] Process Aborted! Watch Dog Will Email You The Dump File!", MBToUni(findResult->second.m_sProgramName).c_str());
+	auto pConnection = reinterpret_cast<CONNECTION*>(pPacketData->m_pOwner);
+	auto pPingPacket = WatchDogPacket::GetPingPacket(pPacketData->m_packetData->m_sPacketData);
 
-			m_mailClient.AddNewDumpTransmitQueueData(findResult->second.m_sProgramName, findResult->second.m_sDumpFilePath);
+	if (pConnection && pPingPacket) {
+		CriticalSectionGuard lock(m_csForClientInformation);
+
+		auto findResult = m_clientInformation.find(pConnection);
+		if (findResult != m_clientInformation.cend()) {
+			std::stringstream stringStream;
+
+			stringStream << "CPU USAGE : " << pPingPacket->cpu_usage() << "% / 100.00% \n";
+			stringStream << "MEMORY USAGE : " << pPingPacket->memory_usage() << "MB / " << pPingPacket->total_memory()<< "MB \n";
+			stringStream << "CONNECTED USERS : " << pPingPacket->connected_user_count() << "\n";
+
+			m_discordBot.Send(
+				findResult->second.m_iDiscordBotChannelID, 
+				EMessageLevel::E_Ping, 
+				"NOTIFY", 
+				"```ansi\n[1;35m[" + findResult->second.m_sProcessName + "] STATE\n" + stringStream.str() + "[1m```");
 		}
-
-		if (findResult->second.m_bEnableRestart) {
-			const std::string sCombine = findResult->second.m_sProgramPath + "\\" + findResult->second.m_sProgramName;
-			STARTUPINFOA startInfo = { sizeof(STARTUPINFOA) };
-			PROCESS_INFORMATION processInformation;
-			
-			if (CreateProcessA(sCombine.c_str(), const_cast<char*>(findResult->second.m_sCommandLineArgv.c_str()), NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL, &startInfo, &processInformation))
-				SERVER::FUNCTIONS::LOG::Log::WriteLog(L"Client Process Restart Successful : %ls", SERVER::FUNCTIONS::UTIL::MBToUni(sCombine).c_str());
-			else
-				SERVER::FUNCTIONS::LOG::Log::WriteLog(L"Failed To Restart Client Process : %ls", SERVER::FUNCTIONS::UTIL::MBToUni(findResult->second.m_sProgramName).c_str());
-		}
-		m_clientInformation.erase(findResult);
-		return true;
 	}
-	return false;
+}
+
+void CWatchDog::ReceivedDump(PacketQueueData* const pPacketData) {
+	using namespace SERVER::FUNCTIONS::UTIL;
+	using namespace SERVER::FUNCTIONS::CRITICALSECTION;
+
+	auto pDumpPacket = WatchDogPacket::GetDumpTransmitPacket(pPacketData->m_packetData->m_sPacketData);
+	if (pDumpPacket) 
+		m_mailClient.RequestMail((const Mail::RequestType)pDumpPacket->dump_transfer_status(), pDumpPacket->program_name()->c_str(), pDumpPacket->dump_file_name()->c_str(), pDumpPacket->dump_data()->Data(), pDumpPacket->dump_data()->Length());
+}
+
+
+void CWatchDog::SendPingToClients() {
+	using namespace SERVER::FUNCTIONS::CRITICALSECTION;
+
+	CriticalSectionGuard lock(m_csForClientInformation);
+	for (auto& iterator : m_clientInformation) {
+		flatbuffers::FlatBufferBuilder builder;
+
+		iterator.first->m_pUser->Send(SERVER::WATCHDOG::UTIL::CreatePingPacket(builder));
+	}
 }

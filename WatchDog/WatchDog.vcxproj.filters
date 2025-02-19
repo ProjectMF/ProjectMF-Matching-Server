@@ -25,8 +25,8 @@
     <Filter Include="Header Files\Util">
       <UniqueIdentifier>{4d4d35fe-2e1c-444e-969c-60568c3cc0ee}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\MailClient\DumpTransmitSystem">
-      <UniqueIdentifier>{b4640c26-27bd-4373-99b2-91c2485a2764}</UniqueIdentifier>
+    <Filter Include="Header Files\DiscordBot">
+      <UniqueIdentifier>{3bd95312-4dfa-4c4c-a55d-83b4170283d5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -39,8 +39,8 @@
     <ClCompile Include="MailClient\MailClient.cpp">
       <Filter>Header Files\MailClient</Filter>
     </ClCompile>
-    <ClCompile Include="MailClient\DumpTransmitSystem\DumpTransmitSystem.cpp">
-      <Filter>Header Files\MailClient\DumpTransmitSystem</Filter>
+    <ClCompile Include="DiscordBot\DiscordBot.cpp">
+      <Filter>Header Files\DiscordBot</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -56,8 +56,8 @@
     <ClInclude Include="Util\MailUtil.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="MailClient\DumpTransmitSystem\DumpTransmitSystem.h">
-      <Filter>Header Files\MailClient\DumpTransmitSystem</Filter>
+    <ClInclude Include="DiscordBot\DiscordBot.h">
+      <Filter>Header Files\DiscordBot</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
