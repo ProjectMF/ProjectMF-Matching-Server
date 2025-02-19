@@ -8,69 +8,36 @@
 #include "create_session_request_generated.h"
 #include <rpc.h>
 #include <ServerLibrary/Network/Packet/Serialization/serialization.hpp>
+#include <ServerLibrary/Functions/UUID/UUID.hpp>
 
-static SERVER::FUNCTIONS::CRITICALSECTION::CriticalSection g_UUID_CS;
-
-uint16_t GenerateUUID() {
-	UUID userUUID;
-
-	g_UUID_CS.Lock();
-
-	if (UuidCreate(&userUUID) != RPC_S_OK)
-		return 0;
-
-	RPC_STATUS result;
-	auto iUUID = UuidHash(&userUUID, &result);
-
-	g_UUID_CS.UnLock();
-
-	if (result != RPC_S_OK)
-		return 0;
-	return iUUID;
-}
-
-
-CIOCP::CIOCP() : IOCP(m_packetProcessor), m_watchDogClient("", true) {
-	m_watchDogClient.m_OnDestroyCallback = std::function<void()>([&]() {
-		m_bMainThreadRunState = false;
-	});
-
+CIOCP::CIOCP(const std::string& sProgramName) : IOCP(m_packetProcessor), m_hSharedMemory(NULL) {
 	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_SignInRequest, std::bind(&CIOCP::SignInRequest, this, std::placeholders::_1));
 	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_FindMatchRequest, std::bind(&CIOCP::FindMatchRequest, this, std::placeholders::_1));
 	m_packetProcessor.emplace(FlatPacket::PacketType::PacketType_CreateSessionRequest, std::bind(&CIOCP::CreateSessionRequest, this, std::placeholders::_1));
 
 	m_bMainThreadRunState = true;
+
+	m_hSharedMemory = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, SERVER::FUNCTIONS::UTIL::MBToUni(sProgramName + " IPC").c_str());
 }
 
 CIOCP::~CIOCP() {
-
 }
 
 bool CIOCP::Initialize(const EPROTOCOLTYPE protocolType, SERVER::FUNCTIONS::SOCKETADDRESS::SocketAddress& bindAddress) {
-	if (IOCP::Initialize(protocolType, bindAddress)) {
-		SocketAddress watchDogServerAddress("127.0.0.1", 3590);
-		if (!m_watchDogClient.Initialize(EPROTOCOLTYPE::EPT_TCP, watchDogServerAddress))
-			return false;
-	}
-	return true;
+	return IOCP::Initialize(protocolType, bindAddress);
 }
 
 void CIOCP::Run() {
 	IOCP::Run();
 
-	m_watchDogClient.Run();
 }
 
 void CIOCP::Destroy() {
-	m_watchDogClient.Destroy();
+	if (m_hSharedMemory != NULL)
+		CloseHandle(m_hSharedMemory);
 
 	IOCP::Destroy();
 }
-
-void CIOCP::BeginDestroy(const bool bRestart) {
-	m_watchDogClient.BeginDestroy(bRestart);
-}
-
 
 ::IOCP::CONNECTION* CIOCP::OnIOTryDisconnect(User_Server* const pClient) {
 	if (auto pConnection = ::IOCP::IOCP::OnIOTryDisconnect(pClient)) {
@@ -110,7 +77,7 @@ void CIOCP::SignInRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPacke
 		uint16_t iSignInResult = FlatPacket::RequestMessageType::RequestMessageType_Failed;
 
 		if (const auto pSignInRequestData = FlatPacket::GetSignInRequest(pPacketData->m_packetData->m_sPacketData)) {
-			iUUID = GenerateUUID();
+			iUUID = SERVER::FUNCTIONS::UUID::UUIDGenerator::Generate();
 
 			m_userInfoMutex.lock();
 
@@ -119,8 +86,15 @@ void CIOCP::SignInRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPacke
 			m_userInfoMutex.unlock();
 
 			iSignInResult = FlatPacket::RequestMessageType::RequestMessageType_Succeeded;
+
+			if (m_hSharedMemory != NULL) {
+				if (int32_t* pSharedConnectedUserCount = (int32_t*)MapViewOfFile(m_hSharedMemory, FILE_MAP_WRITE, 0, 0, 0))
+					*pSharedConnectedUserCount += 1;
+			}
 		}
-		Sleep(2000);
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
 		pConnection->m_pUser->Send(
 			SERVER::NETWORK::PACKET::UTIL::SERIALIZATION::Serialize(
 				pFlatBuffer->m_flatbuffer, 
@@ -180,7 +154,7 @@ void CIOCP::FindMatchRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPa
 void CIOCP::CreateSessionRequest(SERVER::NETWORK::PACKET::PacketQueueData* const pPacketData) {
 	if (auto pConnection = reinterpret_cast<SERVER::NETWORKMODEL::IOCP::CONNECTION*>(pPacketData->m_pOwner)) {
 		if (const auto pCreateSessionRequestData = FlatPacket::GetCreateSessionRequest(pPacketData->m_packetData->m_sPacketData)) {
-			int32_t iCachedSessionUniqueID = GenerateUUID();
+			int32_t iCachedSessionUniqueID = SERVER::FUNCTIONS::UUID::UUIDGenerator::Generate();
 
 			m_sessionInfoMutex.lock();
 

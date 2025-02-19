@@ -128,7 +128,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>E:\Visual Studio\MF-Server\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Functions.lib;Network.lib;NetworkModel.lib;WatchDog.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Functions.lib;Network.lib;NetworkModel.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
