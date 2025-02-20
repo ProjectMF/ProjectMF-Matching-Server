@@ -8,7 +8,8 @@ https://github.com/open-source-parsers/jsoncpp
 
 # 디스코드 커맨드
 /ping name:(프로세스 이름)  
-![image](https://github.com/user-attachments/assets/0e40e31a-add6-4e86-a247-ccb9de723d07)
+
+![image](https://github.com/user-attachments/assets/2c5b2ceb-e0dc-431a-b277-5138fec8409a)
 
 
 # 테스트 서버 접속 방법
