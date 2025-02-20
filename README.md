@@ -7,7 +7,9 @@ https://github.com/yourWaifu/sleepy-discord
 https://github.com/open-source-parsers/jsoncpp
 
 # 디스코드 커맨드
-/ping name:(프로세스 이름)
+/ping name:(프로세스 이름)  
+![image](https://github.com/user-attachments/assets/0e40e31a-add6-4e86-a247-ccb9de723d07)
+
 
 # 테스트 서버 접속 방법
 주소와 포트 번호는 아래와 같습니다.  
