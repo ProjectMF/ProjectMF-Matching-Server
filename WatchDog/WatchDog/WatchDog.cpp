@@ -7,7 +7,7 @@
 #define MINUTE(x) ((x) * 60)
 #define HOUR(x) ((x) * (MINUTE(x) * SECOND))
 
-CWatchDog::CWatchDog() : IOCP(m_packetProcessor, 10), m_discordBot("") {
+CWatchDog::CWatchDog() : IOCP(m_packetProcessor, std::thread::hardware_concurrency() * 2), m_discordBot("") {
 	m_packetProcessor.emplace(WatchDogPacket::PacketType_NewProcessDetected, std::bind(&CWatchDog::NewProcessDetected, this, std::placeholders::_1));
 	m_packetProcessor.emplace(WatchDogPacket::PacketType_ProcessTerminated, std::bind(&CWatchDog::ProcessTerminated, this, std::placeholders::_1));
 	m_packetProcessor.emplace(WatchDogPacket::PacketType_DumpFile, std::bind(&CWatchDog::ReceivedDump, this, std::placeholders::_1));
@@ -17,6 +17,8 @@ CWatchDog::CWatchDog() : IOCP(m_packetProcessor, 10), m_discordBot("") {
 bool CWatchDog::Initialize(const EPROTOCOLTYPE protocolType, SocketAddress& serverAddress) {
 	if (IOCP::Initialize(protocolType, serverAddress)) {
 		m_discordBot.Initialize();
+
+		m_discordBot.BindCommand(ECommandType::E_PingCommand, std::bind(&CWatchDog::PingCommandCallback, this, std::placeholders::_1));
 		
 		SocketAddress mailServerAddress("127.0.0.1", 3540);
 		return m_mailClient.Initialize(mailServerAddress);
@@ -60,7 +62,7 @@ void CWatchDog::NewProcessDetected(PacketQueueData* const pPacketData) {
 		if (emplaceResult.second && newProcessInformation.m_iDiscordBotChannelID != 0) {
 			m_discordBot.Send(newProcessInformation.m_iDiscordBotChannelID, EMessageLevel::E_Alarm, "NOTIFY", "```ansi\n[1;32m[" + newProcessInformation.m_sProcessName+ "] Is Running.\n[1m```");
 
-			m_timerSystem.BindTimer(std::bind(&CWatchDog::SendPingToClients, this), 5, false);
+			m_timerSystem.BindTimer(std::bind(&CWatchDog::SendPingToClients, this), HOUR(1), true);
 		}
 	}
 }
@@ -132,10 +134,27 @@ void CWatchDog::ReceivedDump(PacketQueueData* const pPacketData) {
 void CWatchDog::SendPingToClients() {
 	using namespace SERVER::FUNCTIONS::CRITICALSECTION;
 
+	flatbuffers::FlatBufferBuilder builder;
+	
 	CriticalSectionGuard lock(m_csForClientInformation);
-	for (auto& iterator : m_clientInformation) {
+	for (auto& iterator : m_clientInformation)
+		iterator.first->m_pUser->Send(SERVER::WATCHDOG::UTIL::CreatePingPacket(builder));
+}
+
+bool CWatchDog::PingCommandCallback(const void* pValue) {
+	using namespace SERVER::FUNCTIONS::CRITICALSECTION;
+
+	if (auto pProcessName = reinterpret_cast<const std::string* const>(pValue)) {
 		flatbuffers::FlatBufferBuilder builder;
 
-		iterator.first->m_pUser->Send(SERVER::WATCHDOG::UTIL::CreatePingPacket(builder));
+		CriticalSectionGuard lock(m_csForClientInformation);
+		for (auto& iterator : m_clientInformation) {
+			if (iterator.second.m_sProcessName == *pProcessName) {
+				iterator.first->m_pUser->Send(SERVER::WATCHDOG::UTIL::CreatePingPacket(builder));
+
+				return true;
+			}
+		}
 	}
+	return false;
 }

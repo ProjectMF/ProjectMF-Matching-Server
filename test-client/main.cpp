@@ -18,8 +18,8 @@ int main() {
 
 	memset((char*)&socketaddr, 0, sizeof(struct sockaddr_in));
 	socketaddr.sin_family = AF_INET;
-	socketaddr.sin_port = htons(3540);
-	socketaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	socketaddr.sin_port = htons(19780);
+	socketaddr.sin_addr.s_addr = inet_addr("54.180.22.22");
 	clid = socket(AF_INET, SOCK_STREAM, 0);
 	if (clid < 0) {
 		perror("socket");

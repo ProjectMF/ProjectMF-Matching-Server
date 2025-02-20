@@ -1,5 +1,6 @@
 #include "DiscordBot.h"
 #include <functional>
+#include <sleepy_discord/slash_commands.h>
 
 #define MAX_EMBED_FIELD_COUNT 1
 
@@ -21,6 +22,18 @@ void CDiscordBot::Destroy() {
 	ioContext->stop();
 
 	m_discordBotWorkerThread.join();
+}
+
+void CDiscordBot::BindCommand(const ECommandType commandType, const std::function<bool(const void* const)>& callback) {
+	m_commandList.push_back(FCommandInformation(commandType, callback));
+}
+
+bool CDiscordBot::ExecuteCommand(ECommandType commandType, const void* const pValue) {
+	for (const auto& iterator : m_commandList) {
+		if (iterator.m_commandType == commandType)
+			return iterator.m_callback(pValue);
+	}
+	return false;
 }
 
 void CDiscordBot::Send(const uint64_t iDiscordBotChannelID, const EMessageLevel messageLevel, const std::string& sTitle, const std::string& sMessage) {
@@ -57,4 +70,31 @@ void CDiscordBot::Send(const uint64_t iDiscordBotChannelID, const EMessageLevel 
 	sendMessage(iDiscordBotChannelID, "", m_messageEmbed);
 
 	m_messageEmbed.fields.clear();
+}
+
+void CDiscordBot::onInteraction(SleepyDiscord::Interaction interaction) {
+	SleepyDiscord::Interaction::Response<> response;
+	response.type = SleepyDiscord::InteractionCallbackType::ChannelMessageWithSource;
+
+	if (interaction.data.name == "ping") {
+		if (interaction.data.options.size() > 0 && interaction.data.options[0].name == "name") {
+			std::string sProcessName;
+			interaction.data.options[0].get(sProcessName);
+
+			if (!ExecuteCommand(ECommandType::E_PingCommand, &sProcessName))
+				response.data.content = "Process Is Not Running.";
+			else
+				response.data.content = "Process Found! Send Information.";
+		}
+		else
+			response.data.content = "Must Enter The Process Name!";
+
+		createInteractionResponse(interaction.ID, interaction.token, response);
+	}
+	else {
+		response.data.content = "Couldn't Find Command";
+		response.data.flags = SleepyDiscord::InteractionAppCommandCallbackData::Flags::Ephemeral;
+
+		createInteractionResponse(interaction, interaction.token, response);
+	}
 }

@@ -43,6 +43,9 @@ private:
 	void SendPingToClients();
 
 private:
+	bool PingCommandCallback(const void* const pValue);
+
+private:
 	PACKETPROCESSOR m_packetProcessor;
 
 	SERVER::FUNCTIONS::CRITICALSECTION::CriticalSection m_csForClientInformation;

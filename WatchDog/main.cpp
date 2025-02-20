@@ -2,7 +2,7 @@
 #include <conio.h>
 
 int main() {
-	SocketAddress bindAddress("127.0.0.1", 3590);
+	SocketAddress bindAddress("172.31.39.72", 19980);
 	CWatchDog watchdogInstance;
 
 	if (watchdogInstance.Initialize(EPROTOCOLTYPE::EPT_TCP, bindAddress)) {
