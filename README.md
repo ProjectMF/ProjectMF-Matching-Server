@@ -4,7 +4,10 @@ https://www.boost.org/
 https://flatbuffers.dev/  
 https://slproweb.com/products/Win32OpenSSL.html  
 https://github.com/yourWaifu/sleepy-discord  
+https://github.com/open-source-parsers/jsoncpp
 
+# 디스코드 커맨드
+/ping name:(프로세스 이름)
 
 # 테스트 서버 접속 방법
 주소와 포트 번호는 아래와 같습니다.  
