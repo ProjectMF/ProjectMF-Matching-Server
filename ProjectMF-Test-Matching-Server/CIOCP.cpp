@@ -51,8 +51,10 @@ void CIOCP::Destroy() {
 
 				const auto& session = m_sessionInformation.find(user->second->m_iSessionUniqueID);
 				if (session != m_sessionInformation.cend()) {
-					if (session->second->m_iCurrentUserCount <= 1)
+					if (session->second->m_iCurrentUserCount <= 1) {
+						delete session->second;
 						m_sessionInformation.erase(session);
+					}
 					else
 						session->second->m_iCurrentUserCount--;
 				}
@@ -60,6 +62,13 @@ void CIOCP::Destroy() {
 				m_sessionInfoMutex.unlock();
 
 			}
+			
+			if (m_hSharedMemory != NULL) {
+				if (int32_t* pSharedConnectedUserCount = (int32_t*)MapViewOfFile(m_hSharedMemory, FILE_MAP_WRITE, 0, 0, 0))
+					*pSharedConnectedUserCount -= 1;
+			}
+
+			delete user->second;
 			m_userInformation.erase(user);
 		}
 
